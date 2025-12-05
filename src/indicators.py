@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 def calculate_sma(series, window):
     """Calculates Simple Moving Average."""
@@ -17,3 +18,28 @@ def calculate_bollinger_bands(series, window=20, std_dev=2):
         'bb_upper': upper_band,
         'bb_lower': lower_band
     }, index=series.index)
+
+def calculate_kalman_trend(series):
+    """Applies a simple Kalman-like filter for trend estimation."""
+    values = series.values
+    n = len(values)
+    trend = np.zeros(n)
+    estimate = values[0]
+    error_est = 1.0
+    error_meas = 1.0
+    q = 0.01
+
+    # Simple 1D Kalman implementation
+    for i in range(1, n):
+        # Prediction
+        estimate = estimate 
+        error_est = error_est + q
+        
+        # Update
+        kalman_gain = error_est / (error_est + error_meas)
+        estimate = estimate + kalman_gain * (values[i] - estimate)
+        error_est = (1 - kalman_gain) * error_est
+        
+        trend[i] = estimate
+        
+    return pd.Series(trend, index=series.index, name="kalman_trend")
