@@ -68,3 +68,22 @@ def save_to_csv(rows: List[Dict], filename: str) -> None:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def main() -> None:
+    """
+    Main function: Load Data, filter and save to csv.
+    """
+    print("Loading Fear-&-Greed-Data...")
+    data = fetch_fear_greed_data()
+
+    print("Filtering from 2022-01-01 to 2024-12-31...")
+    filtered = filter_by_date(data, START_DATE, END_DATE)
+
+    print(f"Savied {len(filtered)} rows in '{OUTPUT_FILE}'...")
+    save_to_csv(filtered, OUTPUT_FILE)
+    print("Done.")
+
+
+if __name__ == "__main__":
+    main()
