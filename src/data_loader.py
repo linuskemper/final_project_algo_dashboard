@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 import yfinance as yf
 
@@ -34,3 +36,43 @@ def download_bitcoin_history(
     data = data[["Date", "Close"]].rename(columns={"Close": "close"})
     data["Date"] = pd.to_datetime(data["Date"])
     return data
+
+
+def load_fear_greed_index(
+    csv_path: str | Path,
+    start_date: str = START_DATE,
+    end_date: str = END_DATE,
+) -> pd.DataFrame:
+    """
+    Load Fear & Greed index data from the CSV file.
+    """
+    csv_path = Path(csv_path)
+    if not csv_path.exists():
+        raise FileNotFoundError(
+            f"Fear & Greed CSV file not found at: {csv_path}"
+        )
+
+    df = pd.read_csv(csv_path)
+
+    if "date" in df.columns:
+        date_col = "date"
+    elif "timestamp" in df.columns:
+        date_col = "timestamp"
+    else:
+        raise ValueError(
+            "Fear & Greed CSV must contain a 'date' or 'timestamp' column."
+        )
+
+    df[date_col] = pd.to_datetime(df[date_col])
+    df = df.rename(
+        columns={
+            date_col: "date",
+            "value": "fg_value",
+            "value_classification": "fg_classification",
+        }
+    )
+
+    mask = (df["date"] >= start_date) & (df["date"] <= end_date)
+    df = df.loc[mask].copy()
+    df = df.sort_values("date").reset_index(drop=True)
+    return df
