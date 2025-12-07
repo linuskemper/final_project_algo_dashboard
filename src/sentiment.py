@@ -1,5 +1,6 @@
 from __future__ import annotations
 import pandas as pd
+from typing import Tuple
 
 def classify_sentiment_value(
     value: float,
@@ -64,3 +65,31 @@ def add_sentiment_regime(
         )
     )
     return result
+
+def is_extreme_fear(regime: str) -> bool:
+    """Return True if the sentiment regime represents extreme fear."""
+    return regime == "Extreme Fear"
+
+
+def is_extreme_greed(regime: str) -> bool:
+    """Return True if the sentiment regime represents extreme greed."""
+    return regime == "Extreme Greed"
+
+
+def summarize_sentiment(data: pd.DataFrame) -> Tuple[float, float]:
+    """
+    Compute basic statistics for the Fear & Greed index.
+
+    Parameters
+    ----------
+    data:
+        Data frame with 'fg_value' column.
+
+    Returns
+    -------
+    tuple[float, float]
+        Tuple of (mean_fear_greed, std_fear_greed).
+    """
+    mean_value = float(data["fg_value"].mean())
+    std_value = float(data["fg_value"].std())
+    return mean_value, std_value
