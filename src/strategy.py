@@ -29,3 +29,17 @@ def generate_signals(df):
     df['trade_signal'] = df['signal_diff'].map(sig_map).fillna('Hold')
     
     return df
+
+def get_latest_recommendation(df):
+    """Returns the latest signal and a brief explanation."""
+    if df.empty:
+        return "Unknown", "No data available."
+        
+    last_row = df.iloc[-1]
+    signal = last_row.get('trade_signal', 'Hold')
+    
+    sma_s = last_row.get('sma_short', 0)
+    sma_l = last_row.get('sma_long', 0)
+    
+    explanation = f"Short SMA ({sma_s:.2f}) vs Long SMA ({sma_l:.2f})."
+    return signal, explanation
