@@ -5,7 +5,6 @@ from __future__ import annotations
 from math import sqrt
 from typing import Dict, Tuple
 
-import numpy as np
 import pandas as pd
 
 
@@ -36,7 +35,10 @@ def run_backtest(data: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, float]]:
     result["strategy_equity"] = (1.0 + result["strategy_return"]).cumprod()
     result["benchmark_equity"] = (1.0 + result["return"]).cumprod()
 
-    drawdown = result["strategy_equity"] / result["strategy_equity"].cummax() - 1.0
+    drawdown = (result["strategy_equity"]
+                / result["strategy_equity"].cummax()
+                - 1.0
+                )
     max_drawdown = float(drawdown.min())
 
     strat_ret = result["strategy_return"]
