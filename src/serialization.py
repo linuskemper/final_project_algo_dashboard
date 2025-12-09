@@ -11,8 +11,23 @@ def serialize_data(df):
     # Create valid date string
     data_dict["dates"] = [d.strftime("%Y-%m-%d") for d in df.index]
 
-    # Convert price series to list
-    if "close" in df.columns:
-        data_dict["prices"] = to_list_safe(df["close"])
+    col_mapping = {
+        "close" : "close",
+        "sma_short" : "sma_short",
+        "sma_long" : "sma_long",
+        "bb_middle" : "bb_middle",
+        "bb_upper" : "bb_upper",
+        "bb_lower" : "bb_lower",
+        "fg_value" : "fg_value",
+        "kalman_trend" : "kalman_trend"
+    }
+
+    for df_col, api_key in col_mapping.items():
+        if df_col in df.columns:
+            data_dict[api_key] = to_list_safe(df[df_col])
+
+    # Handle signals separately
+    if "trade_signal" in df.columns:
+        data_dict["trade_signal"] = df["trade_signal"].fillna("Hold").tolist()
 
     return data_dict
