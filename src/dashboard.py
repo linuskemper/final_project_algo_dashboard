@@ -4,6 +4,24 @@ from src import data_loader
 
 app = Flask(__name__, template_folder="../templates", static_folder="../static")
 
+# Simple cache to avoid reloading data every time
+_CACHE = {}
+
+def get_data_pipeline():
+    """ Execution data loading pipeline """
+    if "full_data" in _CACHE:
+        return _CACHE["full_data"]
+    try:
+        # TODO: prices and sentiment functions compare
+        prices = data_loader.download_bitcoin_history()
+        sentiment = data_loader.load_fear_greed_index()
+        merged = data_loader.merge_price_and_sentiment(prices, sentiment)
+        _CACHE["full_data"] = merged
+        return merged
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        raise e
+
 @app.route("/")
 def home():
     return render_template("dashboard.html")
@@ -45,18 +63,5 @@ def get_dashboard_data():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-_CACHE = {}
-
-def get_data_pipeline():
-    if "full_data" in _CACHE:
-        return _CACHE["full_data"]
-    try:
-        # TODO: prices and sentiment functions compare
-        prices = data_loader.download_bitcoin_history()
-        sentiment = data_loader.load_fear_greed_index()
-        merged = data_loader.merge_price_and_sentiment(prices, sentiment)
-        _CACHE["full_data"] = merged
-        return merged
-    except Exception as e:
-        print(f"Error loading data: {e}")
-        raise e
+if __name__ == "__main__":
+    app.run(debug=True, port = 5000)
