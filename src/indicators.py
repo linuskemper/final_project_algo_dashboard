@@ -1,45 +1,95 @@
-import pandas as pd
+"""Indicator calculation utilities for the trading strategy."""
+
+from __future__ import annotations
+
 import numpy as np
+import pandas as pd
 
-def calculate_sma(series, window):
-    """Calculates Simple Moving Average."""
-    return series.rolling(window=window).mean()
 
-def calculate_bollinger_bands(series, window=20, std_dev=2):
-    """Calculates Bollinger Bands."""
-    sma = series.rolling(window=window).mean()
+def calculate_sma(series: pd.Series, window: int) -> pd.Series:
+    """
+    Calculate a simple moving average for a price series.
+    """
+    return series.rolling(window=window, min_periods=window).mean()
+
+
+def calculate_bollinger_bands(
+    series: pd.Series, window: int = 20, num_std: float = 2.0
+) -> pd.DataFrame:
+    """
+    Calculate Bollinger Bands for a price series.
+    """
+    middle = series.rolling(window=window).mean()
     std = series.rolling(window=window).std()
-    
-    upper_band = sma + (std * std_dev)
-    lower_band = sma - (std * std_dev)
-    
-    return pd.DataFrame({
-        'bb_middle': sma,
-        'bb_upper': upper_band,
-        'bb_lower': lower_band
-    }, index=series.index)
+    upper = middle + (std * num_std)
+    lower = middle - (std * num_std)
 
-def calculate_kalman_trend(series):
-    """Applies a simple Kalman-like filter for trend estimation."""
-    values = series.values
-    n = len(values)
-    trend = np.zeros(n)
+    return pd.DataFrame(
+        {"bb_middle": middle, "bb_upper": upper, "bb_lower": lower}, index=series.index
+    )
+
+
+def add_moving_averages(
+    data: pd.DataFrame,
+    short_window: int = 5,
+    long_window: int = 50,
+) -> pd.DataFrame:
+    """
+    Add short and long simple moving averages to the data frame.
+    """
+    result = data.copy()
+    result["sma_short"] = calculate_sma(result["close"], short_window)
+    result["sma_long"] = calculate_sma(result["close"], long_window)
+    return result
+
+
+def add_bollinger_bands(
+    data: pd.DataFrame, window: int = 20, num_std: float = 2.0
+) -> pd.DataFrame:
+    """
+    Add Bollinger Bands to the data frame.
+    """
+    result = data.copy()
+    bands = calculate_bollinger_bands(result["close"], window, num_std)
+    result = pd.concat([result, bands], axis=1)
+    return result
+
+
+def kalman_trend_filter(
+    series: pd.Series,
+    process_variance: float = 1e-5,
+    measurement_variance: float = 1e-2,
+) -> pd.Series:
+    """
+    Apply a simple 1D Kalman filter to estimate the trend of a series.
+    """
+    values = series.to_numpy(dtype=float)
+    n_obs = len(values)
+
+    if n_obs == 0:
+        return series.copy()
+
+    estimates = np.zeros(n_obs, dtype=float)
     estimate = values[0]
-    error_est = 1.0
-    error_meas = 1.0
-    q = 0.01
+    estimate_variance = 1.0
 
-    # Simple 1D Kalman implementation
-    for i in range(1, n):
-        # Prediction
-        estimate = estimate 
-        error_est = error_est + q
-        
-        # Update
-        kalman_gain = error_est / (error_est + error_meas)
+    for i in range(n_obs):
+        estimate_variance += process_variance
+        kalman_gain = estimate_variance / (
+            estimate_variance + measurement_variance
+        )
+
         estimate = estimate + kalman_gain * (values[i] - estimate)
-        error_est = (1 - kalman_gain) * error_est
-        
-        trend[i] = estimate
-        
-    return pd.Series(trend, index=series.index, name="kalman_trend")
+        estimate_variance = (1.0 - kalman_gain) * estimate_variance
+        estimates[i] = estimate
+
+    return pd.Series(estimates, index=series.index, name="kalman_trend")
+
+
+def add_kalman_trend(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add a Kalman-filter-based trend estimate to the data frame.
+    """
+    result = data.copy()
+    result["kalman_trend"] = kalman_trend_filter(result["close"])
+    return result
