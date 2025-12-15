@@ -3,7 +3,7 @@
     --bg-dark: #0f172a;
     --bg-card: rgba(30, 41, 59, 0.7);
     --bg-glass: rgba(255, 255, 255, 0.05);
-    --border-glass: rgba(255, 255, 255, 0.01);
+    --border-glass: rgba(255, 255, 255, 0.1);
 
     --primary: #3b82f6;
     --primary-glow: rgba(59, 130, 246, 0.5);
@@ -124,7 +124,7 @@ body {
     font-family: var(--font-mono), serif;
 }
 
-.control-group input[type = "number"]{
+.control-group input[type = "range"]{
     width: 100%;
 }
 
@@ -234,4 +234,98 @@ body {
 .kpi-sub {
     font-size: 0.8rem;
     opacity: 0.6;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    grid-template-rows: 400px 250px;
+    gap: 1.5rem;
+}
+
+.chart-container {
+    padding: 1.5rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.large-chart {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+}
+
+.side-chart {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+}
+
+.bottom-chart {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+}
+
+.signal-card {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.chart-header h2, .signal-card h2 {
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 600;
+}
+
+.canvas-wrapper {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+}
+
+/* Signal */
+.signal-display {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 1rem 0;
+    background: linear-gradient(135deg, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.signal-reason {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-glass);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
