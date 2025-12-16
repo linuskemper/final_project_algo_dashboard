@@ -48,8 +48,22 @@ def generate_positions(
     result["position"] = positions
     return result
 
+def generate_trade_signals(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert position changes into buy and sell signals.
+    """
+    result = data.copy()
+    prev_position = result["position"].shift(1).fillna(0)
 
-def latest_recommendation(data: pd.DataFrame) -> Tuple[str, str]:
+    buy_mask = (prev_position == 0) & (result["position"] == 1)
+    sell_mask = (prev_position == 1) & (result["position"] == 0)
+
+    result["trade_signal"] = "Hold"
+    result.loc[buy_mask, "trade_signal"] = "Buy"
+    result.loc[sell_mask, "trade_signal"] = "Sell"
+    return result
+
+def get_latest_recommendation(data: pd.DataFrame) -> Tuple[str, str]:
     """
     Return the latest trade recommendation and a short explanation.
     """

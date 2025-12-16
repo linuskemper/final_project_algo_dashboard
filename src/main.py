@@ -19,7 +19,7 @@ def run_default_backtest() -> None:
     enriched = strategy.generate_trade_signals(enriched)
 
     backtest_df, metrics = backtesting.run_backtest(enriched)
-    signal, explanation = strategy.latest_recommendation(enriched)
+    signal, explanation = strategy.get_latest_recommendation(enriched)
 
     print("Backtest complete for BTC-USD (2020-01-01 to 2024-12-31)")
     print("------------------------------------------------------")
