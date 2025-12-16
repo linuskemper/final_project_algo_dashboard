@@ -49,16 +49,28 @@ def generate_positions(
     return result
 
 
-def get_latest_recommendation(df):
-    """Returns the latest signal and a brief explanation."""
-    if df.empty:
-        return "Unknown", "No data available."
-        
-    last_row = df.iloc[-1]
-    signal = last_row.get('trade_signal', 'Hold')
-    
-    sma_s = last_row.get('sma_short', 0)
-    sma_l = last_row.get('sma_long', 0)
-    
-    explanation = f"Short SMA ({sma_s:.2f}) vs Long SMA ({sma_l:.2f})."
+def latest_recommendation(data: pd.DataFrame) -> Tuple[str, str]:
+    """
+    Return the latest trade recommendation and a short explanation.
+    """
+    if data.empty:
+        return "Hold", "No data available."
+
+    last_row = data.iloc[-1]
+    signal = str(last_row["trade_signal"])
+
+    if signal == "Buy":
+        explanation = (
+            "Entry signal: positive momentum, positive trend, and "
+            "no extreme greed in sentiment."
+        )
+    elif signal == "Sell":
+        explanation = (
+            "Exit signal: weakening momentum or extreme fear in sentiment."
+        )
+    else:
+        explanation = (
+            "No new signal: keep the current position until conditions change."
+        )
+
     return signal, explanation
