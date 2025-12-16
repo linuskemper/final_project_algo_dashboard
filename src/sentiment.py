@@ -1,3 +1,5 @@
+"""Sentiment processing utilities for the trading strategy."""
+
 from __future__ import annotations
 import pandas as pd
 from typing import Tuple
@@ -9,20 +11,6 @@ def classify_sentiment_value(
 ) -> str:
     """
     Classify a Fear & Greed index value into qualitative regimes.
-
-    Parameters
-    ----------
-    value:
-        Numeric Fear & Greed index value.
-    extreme_fear_threshold:
-        Threshold below which the market is considered in extreme fear.
-    extreme_greed_threshold:
-        Threshold above which the market is considered in extreme greed.
-
-    Returns
-
-    str
-        One of 'Extreme Fear', 'Fear', 'Neutral', 'Greed', 'Extreme Greed'.
     """
     if value <= extreme_fear_threshold:
         return "Extreme Fear"
@@ -41,20 +29,6 @@ def add_sentiment_regime(
 ) -> pd.DataFrame:
     """
     Add a qualitative sentiment regime column to a merged data frame.
-
-    Parameters
-    ----------
-    data:
-        Data frame with a numeric 'fg_value' column.
-    extreme_fear_threshold:
-        Threshold below which the market is considered in extreme fear.
-    extreme_greed_threshold:
-        Threshold above which the market is considered in extreme greed.
-
-    Returns
-    -------
-    pd.DataFrame
-        Data frame with an added 'sentiment_regime' column.
     """
     result = data.copy()
     result["sentiment_regime"] = result["fg_value"].apply(
@@ -79,16 +53,6 @@ def is_extreme_greed(regime: str) -> bool:
 def summarize_sentiment(data: pd.DataFrame) -> Tuple[float, float]:
     """
     Compute basic statistics for the Fear & Greed index.
-
-    Parameters
-    ----------
-    data:
-        Data frame with 'fg_value' column.
-
-    Returns
-    -------
-    tuple[float, float]
-        Tuple of (mean_fear_greed, std_fear_greed).
     """
     mean_value = float(data["fg_value"].mean())
     std_value = float(data["fg_value"].std())
