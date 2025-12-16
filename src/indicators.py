@@ -55,35 +55,40 @@ def add_bollinger_bands(
     return result
 
 
-def kalman_trend_filter(
+def estimate_kalman_trend(
     series: pd.Series,
     process_variance: float = 1e-5,
     measurement_variance: float = 1e-2,
+    initial_estimate_variance: float = 1.0,
 ) -> pd.Series:
     """
-    Apply a simple 1D Kalman filter to estimate the trend of a series.
+    Estimate the trend of a series using a simple 1D Kalman filter.
     """
     values = series.to_numpy(dtype=float)
-    n_obs = len(values)
+    n_obs = values.size
 
     if n_obs == 0:
         return series.copy()
 
-    estimates = np.zeros(n_obs, dtype=float)
+    estimates = np.empty(n_obs, dtype=float)
+
     estimate = values[0]
-    estimate_variance = 1.0
+    estimate_variance = float(initial_estimate_variance)
+    estimates[0] = estimate
 
-    for i in range(n_obs):
+    for i in range(1, n_obs):
+        # Predict
         estimate_variance += process_variance
-        kalman_gain = estimate_variance / (
-            estimate_variance + measurement_variance
-        )
 
-        estimate = estimate + kalman_gain * (values[i] - estimate)
-        estimate_variance = (1.0 - kalman_gain) * estimate_variance
+        # Update
+        kalman_gain = estimate_variance / (estimate_variance + measurement_variance)
+        estimate += kalman_gain * (values[i] - estimate)
+        estimate_variance *= 1.0 - kalman_gain
+
         estimates[i] = estimate
 
     return pd.Series(estimates, index=series.index, name="kalman_trend")
+
 
 
 def add_kalman_trend(data: pd.DataFrame) -> pd.DataFrame:
@@ -91,5 +96,5 @@ def add_kalman_trend(data: pd.DataFrame) -> pd.DataFrame:
     Add a Kalman-filter-based trend estimate to the data frame.
     """
     result = data.copy()
-    result["kalman_trend"] = kalman_trend_filter(result["close"])
+    result["kalman_trend"] = estimate_kalman_trend(result["close"])
     return result

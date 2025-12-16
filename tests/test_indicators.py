@@ -24,5 +24,5 @@ def test_add_moving_averages_shapes():
 def test_kalman_trend_filter_reduces_variance():
     index = pd.date_range("2020-01-01", periods=100, freq="D")
     raw = pd.Series(np.random.randn(100).cumsum() + 100, index=index)
-    trend = indicators.kalman_trend_filter(raw)
+    trend = indicators.estimate_kalman_trend(raw)
     assert trend.std() < raw.std()
