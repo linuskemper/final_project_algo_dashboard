@@ -16,8 +16,8 @@ def serialize_time_series(data: pd.DataFrame) -> Dict[str, List]:
 
     payload = {
         "dates": dates,
-        "close" : _to_list_handle_nan(df["close"].round(2)),
-        "sma_short" : _to_list_handle_nan(df["sma_short"].round(2)),
+        "close": _to_list_handle_nan(df["close"].round(2)),
+        "sma_short": _to_list_handle_nan(df["sma_short"].round(2)),
         "sma_long": _to_list_handle_nan(df["sma_long"].round(2)),
         "bb_middle": _to_list_handle_nan(df["bb_middle"].round(2)),
         "bb_upper": _to_list_handle_nan(df["bb_upper"].round(2)),
@@ -46,10 +46,24 @@ def serialize_sentiment(data: pd.DataFrame) -> Dict[str, List]:
     dates = [idx.strftime("%Y-%m-%d") for idx in df.index]
 
     payload = {
-        "dates" : dates,
-        "fg_value" : _to_list_handle_nan(df["fg_value"].round(0)),
+        "dates": dates,
+        "fg_value": _to_list_handle_nan(df["fg_value"].round(0)),
         "sentiment_regime": (
             df["sentiment_regime"].fillna("Unknown").astype(str).tolist()
         )
+    }
+    return payload
+
+def serialize_performance(data: pd.DataFrame, metrics: Dict[str, float]) -> Dict:
+    df = data.copy()
+    df = df.sort_index()
+
+    dates = [idx.strftime("%Y-%m-%d") for idx in df.index]
+
+    payload = {
+        "dates": dates,
+        "strategy_equity": _to_list_handle_nan(df["strategy_equity"].round(3)),
+        "benchmark_equity": _to_list_handle_nan(df["benchmark_equity"].round(3)),
+        "metrics": metrics
     }
     return payload
