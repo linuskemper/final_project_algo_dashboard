@@ -1,34 +1,40 @@
 import pandas as pd
-from typing import List
+from typing import List, Dict
 
 def _to_list_handle_nan(series: pd.Series) -> List:
     """ Converts a Pandas Series to a list, handling NaNs by replacing them """
     return [None if pd.isna(x) else x for x in series.tolist()]
 
-def serialize_data(df):
+def serialize_time_series(data: pd.DataFrame) -> Dict[str, List]:
     """ Serializes the dataframe for the API """
-    data_dict = {}
+
+    df = data.copy()
+    df = df.sort_index()
 
     # Create valid date string
-    data_dict["dates"] = [d.strftime("%Y-%m-%d") for d in df.index]
+    dates = [idx.strftime("%Y-%m-%d") for idx in df.index]
 
-    col_mapping = {
-        "close" : "close",
-        "sma_short" : "sma_short",
-        "sma_long" : "sma_long",
-        "bb_middle" : "bb_middle",
-        "bb_upper" : "bb_upper",
-        "bb_lower" : "bb_lower",
-        "fg_value" : "fg_value",
-        "kalman_trend" : "kalman_trend"
+    payload = {
+        "dates": dates,
+        "close" : _to_list_handle_nan(df["close"].round(2)),
+        "sma_short" : _to_list_handle_nan(df["sma_short"].round(2)),
+        "sma_long": _to_list_handle_nan(df["sma_long"].round(2)),
+        "bb_middle": _to_list_handle_nan(df["bb_middle"].round(2)),
+        "bb_upper": _to_list_handle_nan(df["bb_upper"].round(2)),
+        "bb_lower": _to_list_handle_nan(df["bb_lower"].round(2)),
+        "kalman_trend": _to_list_handle_nan(df["kalman_trend"].round(2)),
+        "position": df["position"].fillna(0).astype(int).tolist(),
+        "trade_signal": df["trade_signal"].fillna("Hold").astype(str).tolist()
     }
 
-    for df_col, api_key in col_mapping.items():
-        if df_col in df.columns:
-            data_dict[api_key] = _to_list_handle_nan(df[df_col])
+    buy_indices = [
+        i for i, signal in enumerate(payload["trade_signal"]) if signal == "Buy"
+    ]
+    sell_indices = [
+        i for i, signal in enumerate(payload["trade_signal"]) if signal == "Sell"
+    ]
 
-    # Handle signals separately
-    if "trade_signal" in df.columns:
-        data_dict["trade_signal"] = df["trade_signal"].fillna("Hold").tolist()
+    payload["buy_indices"] = buy_indices
+    payload["sell_indices"] = sell_indices
 
-    return data_dict
+    return payload
