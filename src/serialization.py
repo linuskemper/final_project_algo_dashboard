@@ -38,3 +38,18 @@ def serialize_time_series(data: pd.DataFrame) -> Dict[str, List]:
     payload["sell_indices"] = sell_indices
 
     return payload
+
+def serialize_sentiment(data: pd.DataFrame) -> Dict[str, List]:
+    df = data.copy()
+    df = df.sort_index()
+
+    dates = [idx.strftime("%Y-%m-%d") for idx in df.index]
+
+    payload = {
+        "dates" : dates,
+        "fg_value" : _to_list_handle_nan(df["fg_value"].round(0)),
+        "sentiment_regime": (
+            df["sentiment_regime"].fillna("Unknown").astype(str).tolist()
+        )
+    }
+    return payload
