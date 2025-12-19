@@ -6,8 +6,16 @@ def _to_list_handle_nan(series: pd.Series) -> List:
     return [None if pd.isna(x) else x for x in series.tolist()]
 
 def serialize_time_series(data: pd.DataFrame) -> Dict[str, List]:
-    """ Serializes the dataframe for the API """
+    """
+    Serializes time-series data and indicators into a format suitable for JSON API responses.
 
+    Parameters:
+        data: pd.DataFrame containing "close", "sma_short", "sma_long",
+        "kalman_trend", "position" and "trade_signal".
+
+    Returns:
+        Dict: Names with all the parameters
+    """
     df = data.copy()
     df = df.sort_index()
 
@@ -40,6 +48,15 @@ def serialize_time_series(data: pd.DataFrame) -> Dict[str, List]:
     return payload
 
 def serialize_sentiment(data: pd.DataFrame) -> Dict[str, List]:
+    """
+    Serializes sentiment data for API responses.
+
+    Args:
+        data: DataFrame with 'fg_value' and 'sentiment_regime' over dates.
+
+    Returns:
+        Dict: Sentiment time series
+    """
     df = data.copy()
     df = df.sort_index()
 
@@ -55,6 +72,16 @@ def serialize_sentiment(data: pd.DataFrame) -> Dict[str, List]:
     return payload
 
 def serialize_performance(data: pd.DataFrame, metrics: Dict[str, float]) -> Dict:
+    """
+    Serializes strategy performance data and metrics for API responses.
+
+    Args:
+        data: DataFrame containing 'strategy_equity' and 'benchmark_equity' columns.
+        metrics: Dictionary of calculated performance metrics.
+
+    Returns:
+        Dict: Combined performance payload.
+    """
     df = data.copy()
     df = df.sort_index()
 
