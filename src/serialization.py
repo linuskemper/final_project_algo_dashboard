@@ -1,6 +1,7 @@
 import pandas as pd
+from typing import List
 
-def to_list_safe(series):
+def _to_list_handle_nan(series: pd.Series) -> List:
     """ Converts a Pandas Series to a list, handling NaNs by replacing them """
     return [None if pd.isna(x) else x for x in series.tolist()]
 
@@ -24,7 +25,7 @@ def serialize_data(df):
 
     for df_col, api_key in col_mapping.items():
         if df_col in df.columns:
-            data_dict[api_key] = to_list_safe(df[df_col])
+            data_dict[api_key] = _to_list_handle_nan(df[df_col])
 
     # Handle signals separately
     if "trade_signal" in df.columns:
