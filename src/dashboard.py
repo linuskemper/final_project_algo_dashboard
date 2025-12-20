@@ -1,13 +1,20 @@
+import pandas as pd
 from flask import Flask, render_template, request, jsonify
 from src import indicators, strategy, serialization
 from src import data_loader
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Any, Tuple
+from . import (
+data_loader,
+indicators,
+sentiment,
+backtesting
+)
 
 app = Flask(__name__, template_folder="../templates", static_folder="../static")
 
 # Simple cache to avoid reloading data every time
-_CACHE = {}
+_CACHE: Dict[str, Any] = {}
 
 def get_data_pipeline():
     """ Execution data loading pipeline """
@@ -52,6 +59,48 @@ def _parse_parameter_from_request() -> Dict[str, int]:
     }
     return parms
 
+def _get_cached_data(
+        params: Dict[str, int],
+) -> Tuple[pd.DataFrame, Dict[str, float]]:
+
+    key = str(sorted(params.items()))
+
+    if key in _CACHE:
+        print("Returning cached data for key:", key)
+        return _CACHE[key]
+
+    print("Loading new data for key:", key)
+
+    project_root = Path(__file__).resolve().parents[1]
+    fg_csv = data_loader.get_default_data_paths(project_root)
+
+    try:
+        _price_df, _fg_df, merged = data_loader.load_all_data(fg_csv)
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        raise
+
+    enriched = indicators.add_moving_averages(
+        merged,
+        short_window = params["short_window"],
+        long_window=params["long_window"]
+    )
+    enriched = indicators.add_bollinger_bands(enriched)
+    enriched = indicators.add_kalman_trend(enriched)
+    enriched = sentiment.add_sentiment_regime(
+        enriched,
+        extreme_fear_threshold = params["extreme_fear_threshold"],
+        extreme_greed_threshold = params["extreme_greed_threshold"]
+    )
+    enriched = strategy.generate_positions(enriched)
+    enriched = strategy.generate_trade_signals(enriched)
+
+    backtest_df, metrics = backtesting.run_backtest(enriched)
+    enriched["_strategy_equity"] = backtest_df["strategy_equity"]
+    enriched["_benchmark_equity"] = backtest_df["benchmark_equity"]
+
+    _CACHE[key] = (backtest_df, metrics)
+    return backtest_df, metrics
 
 @app.route("/api/data")
 def get_dashboard_data():
