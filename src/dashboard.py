@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, jsonify
 from src import indicators, strategy, serialization
 from src import data_loader
+from pathlib import Path
+from typing import Dict
 
 app = Flask(__name__, template_folder="../templates", static_folder="../static")
 
@@ -22,9 +24,34 @@ def get_data_pipeline():
         print(f"Error loading data: {e}")
         raise e
 
-@app.route("/")
-def home():
-    return render_template("dashboard.html")
+def create_app() -> Flask:
+    app = Flask(
+        __name__,
+        template_folder = str(Path(__file__).resolve().parent[1] / "templates"),
+        static_folder = str(Path(__file__).resolve().parent[1] / "static")
+    )
+    @app.route("/", methods = ["GET"])
+    def index() -> str:
+        return render_template("dashboard.html")
+
+
+def _parse_parameter_from_request() -> Dict[str, int]:
+    def _get_int(name: str, default: int) -> int:
+        raw = request.args.get(name, "")
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            value = default
+        return value
+
+    parms = {
+        "short_window": _get_int("short_window", 5),
+        "long_window": _get_int("long_window", 50),
+        "extreme_fear_threshold": _get_int("extreme_fear", 25),
+        "extreme_greed_threshold": _get_int("extreme_greed", 75)
+    }
+    return parms
+
 
 @app.route("/api/data")
 def get_dashboard_data():
@@ -49,7 +76,7 @@ def get_dashboard_data():
         df = strategy.generate_signals(df)
 
         # 5. Serialize
-        payload = serialization. serialize_data(df)
+        payload = serialization. serialize_time_series(df)
 
         # Add metadata/latest signal
         sig, expl = strategy.get_latest_recommendation(df)
