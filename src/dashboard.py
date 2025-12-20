@@ -1,35 +1,20 @@
-import pandas as pd
-from flask import Flask, render_template, request, jsonify
+from charset_normalizer.api import explain_handler
+
 from src import indicators, strategy, serialization
-from src import data_loader
+
+from flask import Flask, render_template, request, jsonify
 from pathlib import Path
 from typing import Dict, Any, Tuple
+import pandas as pd
+
 from . import (
-data_loader,
-indicators,
-sentiment,
-backtesting
+    data_loader,
+    indicators,
+    sentiment,
+    backtesting
 )
 
-app = Flask(__name__, template_folder="../templates", static_folder="../static")
-
-# Simple cache to avoid reloading data every time
 _CACHE: Dict[str, Any] = {}
-
-def get_data_pipeline():
-    """ Execution data loading pipeline """
-    if "full_data" in _CACHE:
-        return _CACHE["full_data"]
-    try:
-        # TODO: prices and sentiment functions compare
-        prices = data_loader.download_bitcoin_history()
-        sentiment = data_loader.load_fear_greed_index()
-        merged = data_loader.merge_price_and_sentiment(prices, sentiment)
-        _CACHE["full_data"] = merged
-        return merged
-    except Exception as e:
-        print(f"Error loading data: {e}")
-        raise e
 
 def create_app() -> Flask:
     app = Flask(
@@ -41,6 +26,47 @@ def create_app() -> Flask:
     def index() -> str:
         return render_template("dashboard.html")
 
+    @app.route("/api/time_series", methods=["GET"])
+    def api_time_series() -> Any:
+        try:
+            enriched, metrics = _run_pipeline_from_request()
+            payload = serialization.serialize_time_series(enriched)
+            return jsonify(payload)
+
+        except Exception as e:
+            print(f"API Error: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/time_sentiment", methods=["GET"])
+    def api_sentiment() -> Any:
+        try:
+            enriched, metrics = _run_pipeline_from_request()
+
+            payload = serialization.serialize_sentiment(enriched)
+            return jsonify(payload)
+
+        except Exception as e:
+            print(f"API Error: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/performance", methods=["GET"])
+    def api_performance() -> Any:
+        try:
+            enriched, metrics = _run_pipeline_from_request()
+
+            backtest_df, metrics = backtesting.run_backtest(enriched)
+            payload = serialization.serialize_performance(backtest_df, metrics)
+
+            signal, explanation = strategy.get_latest_recommendation(enriched)
+            payload["latest_signal"] = signal
+            payload["latest_explanation"] = explanation
+            return jsonify(payload)
+
+        except Exception as e:
+            print(f"API Error: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    return app
 
 def _parse_parameter_from_request() -> Dict[str, int]:
     def _get_int(name: str, default: int) -> int:
@@ -101,6 +127,10 @@ def _get_cached_data(
 
     _CACHE[key] = (backtest_df, metrics)
     return backtest_df, metrics
+
+def _run_pipeline_from_request():
+    params = _parse_parameter_from_request()
+    return  _get_cached_data(params)
 
 @app.route("/api/data")
 def get_dashboard_data():
