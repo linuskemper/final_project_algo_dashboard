@@ -1,7 +1,3 @@
-from charset_normalizer.api import explain_handler
-
-from src import indicators, strategy, serialization
-
 from flask import Flask, render_template, request, jsonify
 from pathlib import Path
 from typing import Dict, Any, Tuple
@@ -11,16 +7,19 @@ from . import (
     data_loader,
     indicators,
     sentiment,
-    backtesting
+    backtesting,
+    strategy,
+    serialization
 )
 
+# Simple global Cache
 _CACHE: Dict[str, Any] = {}
 
 def create_app() -> Flask:
     app = Flask(
         __name__,
-        template_folder = str(Path(__file__).resolve().parent[1] / "templates"),
-        static_folder = str(Path(__file__).resolve().parent[1] / "static")
+        template_folder = str(Path(__file__).resolve().parents[1] / "templates"),
+        static_folder = str(Path(__file__).resolve().parents[1] / "static")
     )
     @app.route("/", methods = ["GET"])
     def index() -> str:
@@ -37,7 +36,7 @@ def create_app() -> Flask:
             print(f"API Error: {e}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route("/api/time_sentiment", methods=["GET"])
+    @app.route("/api/sentiment", methods=["GET"])
     def api_sentiment() -> Any:
         try:
             enriched, metrics = _run_pipeline_from_request()
@@ -68,7 +67,17 @@ def create_app() -> Flask:
 
     return app
 
-def _parse_parameter_from_request() -> Dict[str, int]:
+def _parse_parameters_from_request() -> Dict[str, int]:
+    """
+    Parses and sanitizes trading strategy parameters from the Flask request arguments.
+
+    Returns:
+        Dict:
+            - short_window: Period for the short-term moving average (default: 5)
+            - long_window: Period for the long-term moving average (default: 50)
+            - extreme_fear_threshold: Sentiment level for extreme fear (default: 25)
+            - extreme_greed_threshold: Sentiment level for extreme greed (default: 75)
+    """
     def _get_int(name: str, default: int) -> int:
         raw = request.args.get(name, "")
         try:
@@ -88,7 +97,17 @@ def _parse_parameter_from_request() -> Dict[str, int]:
 def _get_cached_data(
         params: Dict[str, int],
 ) -> Tuple[pd.DataFrame, Dict[str, float]]:
+    """
+    Executes the full data processing and backtesting pipeline with result caching.
 
+    Parameters:
+        params: Strategy configuration including MA windows and sentiment thresholds.
+
+    Returns:
+        Tuple:
+            - enriched: DataFrame with price data, technical indicators, and strategy signals.
+            - metrics: Dictionary containing backtest results like Sharpe ratio and returns.
+    """
     key = str(sorted(params.items()))
 
     if key in _CACHE:
@@ -113,11 +132,13 @@ def _get_cached_data(
     )
     enriched = indicators.add_bollinger_bands(enriched)
     enriched = indicators.add_kalman_trend(enriched)
+
     enriched = sentiment.add_sentiment_regime(
         enriched,
         extreme_fear_threshold = params["extreme_fear_threshold"],
         extreme_greed_threshold = params["extreme_greed_threshold"]
     )
+
     enriched = strategy.generate_positions(enriched)
     enriched = strategy.generate_trade_signals(enriched)
 
@@ -125,49 +146,21 @@ def _get_cached_data(
     enriched["_strategy_equity"] = backtest_df["strategy_equity"]
     enriched["_benchmark_equity"] = backtest_df["benchmark_equity"]
 
-    _CACHE[key] = (backtest_df, metrics)
-    return backtest_df, metrics
+    _CACHE[key] = (enriched, metrics)
+    return enriched, metrics
 
 def _run_pipeline_from_request():
-    params = _parse_parameter_from_request()
+    """
+    Helper to extract parameters from the current Flask request and trigger the data pipeline.
+
+    Returns:
+        Tuple:
+            - enriched: Processed DataFrame ready for serialization.
+            - metrics: Summary dictionary of backtest performance results.
+    """
+    params = _parse_parameters_from_request()
     return  _get_cached_data(params)
 
-@app.route("/api/data")
-def get_dashboard_data():
-    try:
-        # 1. Load the data
-        df = get_data_pipeline().copy()
-
-        # 2. Parse parameters
-        short_window = int(request.args.get("short_window", 20))
-        long_window = int(request.args.get("long_window", 50))
-
-        # 3. Apply indicators
-        df["sma_short"] = indicators.calculate_sma(df["close"], short_window)
-        df["sma_long"] = indicators.calculate_sma(df["close"], long_window)
-
-        bb_df = indicators.calculate_bollinger_bands(df["close"])
-        df = df.join(bb_df)
-
-        df["kalman_trend"] = indicators.calculate_kalman_trend(df["close"])
-
-        # 4. Apply strategy
-        df = strategy.generate_signals(df)
-
-        # 5. Serialize
-        payload = serialization. serialize_time_series(df)
-
-        # Add metadata/latest signal
-        sig, expl = strategy.get_latest_recommendation(df)
-        payload["latest_signal"] = sig
-        payload["latest_explanation"] = expl
-
-        return jsonify(payload)
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
 if __name__ == "__main__":
-    app.run(debug=True, port = 5000)
+    flask_app = create_app()
+    flask_app.run(debug=True)
