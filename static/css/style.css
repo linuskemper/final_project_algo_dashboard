@@ -3,7 +3,7 @@
     --bg-card: rgba(30, 41, 59, 0.7);
     --bg-glass: rgba(255, 255, 255, 0.05);
     --border-glass: rgba(255, 255, 255, 0.1);
-    
+
     --primary: #3b82f6;
     --primary-glow: rgba(59, 130, 246, 0.5);
     --accent: #8b5cf6;
@@ -12,7 +12,7 @@
     --warning: #f59e0b;
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
-    
+
     --font-heading: 'Inter', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 }
@@ -22,7 +22,7 @@ body {
     font-family: var(--font-heading);
     background-color: var(--bg-dark);
     color: var(--text-main);
-    background-image: 
+    background-image:
         radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 20%),
         radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 20%);
     background-attachment: fixed;
@@ -77,7 +77,8 @@ body {
     gap: 0.75rem;
 }
 
-.nav-item:hover, .nav-item.active {
+.nav-item:hover,
+.nav-item.active {
     background: var(--bg-glass);
     color: var(--text-main);
 }
@@ -111,7 +112,7 @@ body {
 
 .control-group input[type="number"] {
     width: 100%;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--border-glass);
     color: var(--text-main);
     padding: 0.5rem;
@@ -140,7 +141,7 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary:hover {
@@ -157,12 +158,7 @@ body {
     gap: 2rem;
 }
 
-.top-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
+/* Top bar styled in Live Ticker section below */
 
 .breadcrumbs {
     color: var(--text-muted);
@@ -197,8 +193,8 @@ body {
     backdrop-filter: blur(12px);
     border: 1px solid var(--border-glass);
     border-radius: 1rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
-                0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .kpi-card {
@@ -277,7 +273,8 @@ body {
     margin-bottom: 1rem;
 }
 
-.chart-header h2, .signal-card h2 {
+.chart-header h2,
+.signal-card h2 {
     font-size: 1.1rem;
     margin: 0;
     font-weight: 600;
@@ -309,13 +306,255 @@ body {
 ::-webkit-scrollbar {
     width: 8px;
 }
+
 ::-webkit-scrollbar-track {
     background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
     background: var(--border-glass);
     border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Live Ticker Styles */
+.live-ticker {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    background: var(--bg-glass);
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-glass);
+}
+
+.live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pulse-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--danger);
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+    box-shadow: 0 0 10px var(--danger);
+}
+
+.live-indicator.active .pulse-dot {
+    background: var(--success);
+    box-shadow: 0 0 10px var(--success);
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(0.9);
+    }
+}
+
+.stream-status {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stream-status.live {
+    color: var(--success);
+}
+
+.stream-status.paused {
+    color: var(--warning);
+}
+
+.ticker-price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.ticker-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.live-price {
+    font-family: var(--font-mono);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+    transition: color 0.2s ease;
+}
+
+.live-price.price-flash {
+    color: var(--primary);
+}
+
+.live-change {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.live-change.positive {
+    color: var(--success);
+}
+
+.live-change.negative {
+    color: var(--danger);
+}
+
+.last-update {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+/* Stream Controls */
+.stream-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.stream-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border-glass);
+    background: var(--bg-glass);
+    color: var(--text-main);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stream-btn:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 0 15px var(--primary-glow);
+}
+
+/* KPI Animation */
+.kpi-value.kpi-update {
+    animation: kpi-flash 0.3s ease;
+}
+
+@keyframes kpi-flash {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+        color: var(--primary);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Signal Card Flash */
+.signal-card.signal-flash {
+    animation: signal-flash-glow 2s ease;
+}
+
+.signal-card.signal-buy {
+    border-color: var(--success) !important;
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.6) !important;
+}
+
+.signal-card.signal-sell {
+    border-color: var(--danger) !important;
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.6) !important;
+}
+
+@keyframes signal-flash-glow {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    10%,
+    90% {
+        transform: scale(1.02);
+    }
+}
+
+/* Full Screen Border Flash */
+body.screen-flash {
+    position: relative;
+}
+
+body.screen-flash::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 9999;
+    animation: screen-border-pulse 2s ease;
+}
+
+body.flash-buy::after {
+    box-shadow: inset 0 0 100px rgba(16, 185, 129, 0.5),
+        inset 0 0 200px rgba(16, 185, 129, 0.3),
+        inset 0 0 300px rgba(16, 185, 129, 0.1);
+    border: 4px solid var(--success);
+}
+
+body.flash-sell::after {
+    box-shadow: inset 0 0 100px rgba(239, 68, 68, 0.5),
+        inset 0 0 200px rgba(239, 68, 68, 0.3),
+        inset 0 0 300px rgba(239, 68, 68, 0.1);
+    border: 4px solid var(--danger);
+}
+
+@keyframes screen-border-pulse {
+    0% {
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Updated Top Bar for streaming controls */
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
 }

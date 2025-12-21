@@ -3,100 +3,142 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Algo Dashboard</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .card {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        h1 {
-            margin-top: 0;
-        }
-
-        .controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        input[type="number"] {
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        button {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #0056b3;
-        }
-
-        #chart-container {
-            position: relative;
-            height: 500px;
-            width: 100%;
-        }
-
-        .signal-box {
-            font-size: 1.2em;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-    </style>
+    <title>CleanQuant | Final Project Algo Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <!-- Optional for icons -->
 </head>
 
 <body>
 
-    <div class="container">
-        <div class="card">
-            <h1>Strategy Dashboard</h1>
-            <div class="controls">
-                <label>Short Window:</label>
-                <input type="number" id="short_mw" value="20" min="5">
-                <label>Long Window:</label>
-                <input type="number" id="long_mw" value="50" min="20">
-                <button onclick="updateDashboard()">Run Strategy</button>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon"></div>
+                <h1>CleanQuant <span class="highlight">Dash</span></h1>
             </div>
-            <div class="signal-box">
-                Latest Signal: <span id="signal-text">--</span>
-                <div style="font-size: 0.8em; font-weight: normal; color: #666;" id="signal-desc"></div>
-            </div>
-        </div>
 
-        <div class="card">
-            <div id="chart-container">
-                <canvas id="mainChart"></canvas>
+            <div class="strategy-controls">
+                <h3>Strategy Params</h3>
+                <form id="settings-form">
+                    <div class="control-group">
+                        <label>Short MA Window</label>
+                        <input type="number" name="short_window" value="12" min="2" max="20">
+                    </div>
+                    <div class="control-group">
+                        <label>Long MA Window</label>
+                        <input type="number" name="long_window" value="100" min="10" max="200">
+                    </div>
+                    <div class="control-group">
+                        <label>Fear Threshold</label>
+                        <input type="range" name="extreme_fear" min="0" max="50" value="25"
+                            oninput="this.nextElementSibling.value = this.value">
+                        <output>25</output>
+                    </div>
+                    <div class="control-group">
+                        <label>Greed Threshold</label>
+                        <input type="range" name="extreme_greed" min="50" max="100" value="75"
+                            oninput="this.nextElementSibling.value = this.value">
+                        <output>75</output>
+                    </div>
+                    <button type="submit" class="btn-primary">Compute Strategy</button>
+                </form>
             </div>
-        </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="breadcrumbs">Home / BTC-USD Strategy</div>
+                <div class="live-ticker">
+                    <div class="live-indicator active">
+                        <span class="pulse-dot"></span>
+                        <span id="stream-status" class="stream-status live">LIVE</span>
+                    </div>
+                    <div class="ticker-price">
+                        <span class="ticker-label">BTC-USD</span>
+                        <span id="live-price" class="live-price">$--,---</span>
+                        <span id="live-change" class="live-change">--</span>
+                    </div>
+                    <span id="last-update" class="last-update">Last: --</span>
+                </div>
+                <div class="stream-controls">
+                    <button id="btn-play" class="stream-btn" title="Play">▶</button>
+                    <button id="btn-pause" class="stream-btn" title="Pause">⏸</button>
+                    <button id="btn-reset" class="stream-btn" title="Reset">↺</button>
+                </div>
+            </header>
+
+            <section class="kpi-section">
+                <div class="kpi-card glass">
+                    <div class="kpi-title">Total Return</div>
+                    <div class="kpi-value" id="kpi-strategy-return">--%</div>
+                    <div class="kpi-sub" id="kpi-benchmark-return">vs Benchmark: --%</div>
+                </div>
+                <div class="kpi-card glass">
+                    <div class="kpi-title">Max Drawdown</div>
+                    <div class="kpi-value warning" id="kpi-max-dd">--%</div>
+                </div>
+                <div class="kpi-card glass">
+                    <div class="kpi-title">Sharpe Ratio</div>
+                    <div class="kpi-value" id="kpi-sharpe">--</div>
+                </div>
+                <div class="kpi-card glass">
+                    <div class="kpi-title">Win Rate</div>
+                    <div class="kpi-value" id="kpi-hit-rate">--%</div>
+                </div>
+            </section>
+
+            <div class="dashboard-grid">
+                <div class="chart-container glass large-chart">
+                    <div class="chart-header">
+                        <h2>Technical Analysis</h2>
+                        <div class="chart-legend-custom">
+                            <span class="legend-item"><span class="dot price"></span> Price</span>
+                            <span class="legend-item"><span class="dot sma-s"></span> SMA 12</span>
+                            <span class="legend-item"><span class="dot sma-l"></span> SMA 100</span>
+                            <span class="legend-item"><span class="dot bb"></span> Bollinger</span>
+                        </div>
+                    </div>
+                    <div class="canvas-wrapper">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container glass side-chart">
+                    <div class="chart-header">
+                        <h2>Market Sentiment</h2>
+                    </div>
+                    <div class="canvas-wrapper">
+                        <canvas id="sentimentChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container glass bottom-chart">
+                    <div class="chart-header">
+                        <h2>Equity Curve</h2>
+                    </div>
+                    <div class="canvas-wrapper">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="signal-card glass">
+                    <h2>Current Signal</h2>
+                    <div class="signal-display" id="latest-signal">NEUTRAL</div>
+                    <p class="signal-reason" id="latest-explanation">Awaiting data...</p>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <script src="/static/js/app.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 
 </html>
