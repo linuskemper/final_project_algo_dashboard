@@ -13,7 +13,7 @@ TRADING_DAYS_PER_YEAR = 252
 
 def run_backtest(data: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, float]]:
     """
-    Run a long/flat backtest based on the 'position' column.
+    Run a simple long/flat backtest based on the 'position' column.
 
     Parameters
     ----------
@@ -35,10 +35,7 @@ def run_backtest(data: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, float]]:
     result["strategy_equity"] = (1.0 + result["strategy_return"]).cumprod()
     result["benchmark_equity"] = (1.0 + result["return"]).cumprod()
 
-    drawdown = (result["strategy_equity"]
-                / result["strategy_equity"].cummax()
-                - 1.0
-                )
+    drawdown = result["strategy_equity"] / result["strategy_equity"].cummax() - 1.0
     max_drawdown = float(drawdown.min())
 
     strat_ret = result["strategy_return"]

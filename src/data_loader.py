@@ -1,10 +1,13 @@
 """Data loading and preprocessing utilities for the trading dashboard."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Tuple
 
 import pandas as pd
 import yfinance as yf
+
 
 START_DATE = "2020-01-01"
 END_DATE = "2024-12-31"
@@ -17,6 +20,20 @@ def download_bitcoin_history(
 ) -> pd.DataFrame:
     """
     Download historical Bitcoin price data from yfinance.
+
+    Parameters
+    ----------
+    ticker:
+        Yahoo Finance ticker symbol for Bitcoin.
+    start_date:
+        Start date for the download in ISO format (YYYY-MM-DD).
+    end_date:
+        End date for the download in ISO format (YYYY-MM-DD).
+
+    Returns
+    -------
+    pd.DataFrame
+        Data frame with at least the columns 'Date' and 'Close'.
     """
     data = yf.download(
         ticker,
@@ -31,7 +48,7 @@ def download_bitcoin_history(
 
     data = data.reset_index()
 
-    # yfinance can return MultiIndex columns for a single ticker
+    # yfinance can return MultiIndex columns even for a single ticker
     # (level 0 = price field, level 1 = ticker). Flatten to a single level.
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.get_level_values(0)
@@ -47,7 +64,27 @@ def load_fear_greed_index(
     end_date: str = END_DATE,
 ) -> pd.DataFrame:
     """
-    Load Fear & Greed index data from the CSV file.
+    Load Fear & Greed index data from a CSV file.
+
+    The CSV is expected to contain at least the columns:
+    - timestamp or date column (named 'date' or 'timestamp')
+    - 'value' for the index level
+    - optionally 'value_classification' for textual regimes.
+
+    Parameters
+    ----------
+    csv_path:
+        Path to the CSV file in the data directory.
+    start_date:
+        Start date filter in ISO format (YYYY-MM-DD).
+    end_date:
+        End date filter in ISO format (YYYY-MM-DD).
+
+    Returns
+    -------
+    pd.DataFrame
+        Data frame with columns 'date', 'fg_value', and
+        optionally 'fg_classification'.
     """
     csv_path = Path(csv_path)
     if not csv_path.exists():
@@ -87,6 +124,18 @@ def merge_price_and_sentiment(
 ) -> pd.DataFrame:
     """
     Merge Bitcoin prices and Fear & Greed sentiment into one data frame.
+
+    Parameters
+    ----------
+    price_df:
+        Data frame containing 'Date' and 'close' columns.
+    sentiment_df:
+        Data frame containing 'date' and 'fg_value' columns.
+
+    Returns
+    -------
+    pd.DataFrame
+        Combined data frame indexed by date with price and sentiment.
     """
     price = price_df.copy()
     price = price.rename(columns={"Date": "date"})
@@ -122,6 +171,18 @@ def load_all_data(
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Load and merge Bitcoin price data with Fear & Greed sentiment.
+
+    Parameters
+    ----------
+    fear_greed_csv:
+        Path to the Fear & Greed CSV file.
+    ticker:
+        Yahoo Finance ticker symbol for Bitcoin.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+        Tuple with (price_df, sentiment_df, merged_df).
     """
     price_df = download_bitcoin_history(ticker=ticker)
     sentiment_df = load_fear_greed_index(csv_path=fear_greed_csv)
@@ -132,6 +193,16 @@ def load_all_data(
 def get_default_data_paths(base_dir: str | Path) -> Path:
     """
     Return the default path for the Fear & Greed CSV inside the data folder.
+
+    Parameters
+    ----------
+    base_dir:
+        Base project directory.
+
+    Returns
+    -------
+    Path
+        Path to the Fear & Greed CSV file.
     """
     base_path = Path(base_dir)
     return base_path / "data" / "fear_greed_2022_2024.csv"
