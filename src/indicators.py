@@ -25,7 +25,12 @@ def calculate_bollinger_bands(
     lower = middle - (std * num_std)
 
     return pd.DataFrame(
-        {"bb_middle": middle, "bb_upper": upper, "bb_lower": lower}, index=series.index
+        {
+            "bb_middle": middle,
+            "bb_upper": upper,
+            "bb_lower": lower,
+        },
+        index=series.index,
     )
 
 
@@ -81,14 +86,16 @@ def estimate_kalman_trend(
         estimate_variance += process_variance
 
         # Update
-        kalman_gain = estimate_variance / (estimate_variance + measurement_variance)
+        kalman_gain = (
+            estimate_variance
+            / (estimate_variance + measurement_variance)
+        )
         estimate += kalman_gain * (values[i] - estimate)
         estimate_variance *= 1.0 - kalman_gain
 
         estimates[i] = estimate
 
     return pd.Series(estimates, index=series.index, name="kalman_trend")
-
 
 
 def add_kalman_trend(data: pd.DataFrame) -> pd.DataFrame:
