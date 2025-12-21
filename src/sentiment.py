@@ -4,6 +4,7 @@ from __future__ import annotations
 import pandas as pd
 from typing import Tuple
 
+
 def classify_sentiment_value(
     value: float,
     extreme_fear_threshold: int = 25,
@@ -22,6 +23,7 @@ def classify_sentiment_value(
         return "Greed"
     return "Extreme Greed"
 
+
 def add_sentiment_regime(
     data: pd.DataFrame,
     extreme_fear_threshold: int = 25,
@@ -39,6 +41,7 @@ def add_sentiment_regime(
         )
     )
     return result
+
 
 def is_extreme_fear(regime: str) -> bool:
     """Return True if the sentiment regime represents extreme fear."""

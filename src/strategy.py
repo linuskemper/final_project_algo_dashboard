@@ -1,8 +1,11 @@
 """Trading strategy logic and signal generation."""
 
 from __future__ import annotations
+
 from typing import Tuple
+
 import pandas as pd
+
 from .sentiment import is_extreme_fear, is_extreme_greed
 
 
@@ -48,6 +51,7 @@ def generate_positions(
     result["position"] = positions
     return result
 
+
 def generate_trade_signals(data: pd.DataFrame) -> pd.DataFrame:
     """
     Convert position changes into buy and sell signals.
@@ -63,7 +67,8 @@ def generate_trade_signals(data: pd.DataFrame) -> pd.DataFrame:
     result.loc[sell_mask, "trade_signal"] = "Sell"
     return result
 
-def get_latest_recommendation(data: pd.DataFrame) -> Tuple[str, str]:
+
+def latest_recommendation(data: pd.DataFrame) -> Tuple[str, str]:
     """
     Return the latest trade recommendation and a short explanation.
     """
