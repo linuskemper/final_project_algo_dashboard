@@ -1,37 +1,41 @@
-from flask import Flask, render_template, request, jsonify
+"""Flask application exposing an interactive backtest dashboard."""
+
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Dict, Any, Tuple
+from typing import Any, Dict, Tuple
+
 import pandas as pd
+from flask import Flask, jsonify, render_template, request
 
 from . import (
+    backtesting,
     data_loader,
     indicators,
     sentiment,
-    backtesting,
+    serialization,
     strategy,
-    serialization
 )
 
-# Simple global Cache
-_CACHE: Dict[str, Any] = {}
 
 def create_app() -> Flask:
+    """Create and configure the Flask application."""
     app = Flask(
         __name__,
-        template_folder = str(Path(__file__).resolve().parents[1] / "templates"),
-        static_folder = str(Path(__file__).resolve().parents[1] / "static")
+        template_folder=str(Path(__file__).resolve().parents[1] / "templates"),
+        static_folder=str(Path(__file__).resolve().parents[1] / "static"),
     )
-    @app.route("/", methods = ["GET"])
+
+    @app.route("/", methods=["GET"])
     def index() -> str:
         return render_template("dashboard.html")
 
     @app.route("/api/time_series", methods=["GET"])
     def api_time_series() -> Any:
         try:
-            enriched, metrics = _run_pipeline_from_request()
+            enriched, _metrics = _run_pipeline_from_request()
             payload = serialization.serialize_time_series(enriched)
             return jsonify(payload)
-
         except Exception as e:
             print(f"API Error: {e}")
             return jsonify({"error": str(e)}), 500
@@ -39,11 +43,9 @@ def create_app() -> Flask:
     @app.route("/api/sentiment", methods=["GET"])
     def api_sentiment() -> Any:
         try:
-            enriched, metrics = _run_pipeline_from_request()
-
+            enriched, _metrics = _run_pipeline_from_request()
             payload = serialization.serialize_sentiment(enriched)
             return jsonify(payload)
-
         except Exception as e:
             print(f"API Error: {e}")
             return jsonify({"error": str(e)}), 500
@@ -52,31 +54,27 @@ def create_app() -> Flask:
     def api_performance() -> Any:
         try:
             enriched, metrics = _run_pipeline_from_request()
-
             backtest_df, metrics = backtesting.run_backtest(enriched)
             payload = serialization.serialize_performance(backtest_df, metrics)
-
-            signal, explanation = strategy.get_latest_recommendation(enriched)
+            signal, explanation = strategy.latest_recommendation(enriched)
             payload["latest_signal"] = signal
             payload["latest_explanation"] = explanation
             return jsonify(payload)
-
         except Exception as e:
             print(f"API Error: {e}")
             return jsonify({"error": str(e)}), 500
 
     return app
 
+
 def _parse_parameters_from_request() -> Dict[str, int]:
     """
-    Parses and sanitizes trading strategy parameters from the Flask request arguments.
+    Read strategy parameters from the query string with safe defaults.
 
-    Returns:
-        Dict:
-            - short_window: Period for the short-term moving average (default: 5)
-            - long_window: Period for the long-term moving average (default: 50)
-            - extreme_fear_threshold: Sentiment level for extreme fear (default: 25)
-            - extreme_greed_threshold: Sentiment level for extreme greed (default: 75)
+    Returns
+    -------
+    dict[str, int]
+        Dictionary of user-selected parameter values.
     """
     def _get_int(name: str, default: int) -> int:
         raw = request.args.get(name, "")
@@ -86,28 +84,24 @@ def _parse_parameters_from_request() -> Dict[str, int]:
             value = default
         return value
 
-    parms = {
+    params = {
         "short_window": _get_int("short_window", 5),
         "long_window": _get_int("long_window", 50),
         "extreme_fear_threshold": _get_int("extreme_fear", 25),
-        "extreme_greed_threshold": _get_int("extreme_greed", 75)
+        "extreme_greed_threshold": _get_int("extreme_greed", 75),
     }
-    return parms
+    return params
+
+
+# Simple global cache to avoid refetching on every request
+_CACHE: Dict[str, Any] = {}
+
 
 def _get_cached_data(
-        params: Dict[str, int],
+    params: Dict[str, int],
 ) -> Tuple[pd.DataFrame, Dict[str, float]]:
-    """
-    Executes the full data processing and backtesting pipeline with result caching.
-
-    Parameters:
-        params: Strategy configuration including MA windows and sentiment thresholds.
-
-    Returns:
-        Tuple:
-            - enriched: DataFrame with price data, technical indicators, and strategy signals.
-            - metrics: Dictionary containing backtest results like Sharpe ratio and returns.
-    """
+    """Fetch data from cache or load it if missing/stale."""
+    # Create a cache key based on parameters
     key = str(sorted(params.items()))
 
     if key in _CACHE:
@@ -119,6 +113,7 @@ def _get_cached_data(
     project_root = Path(__file__).resolve().parents[1]
     fg_csv = data_loader.get_default_data_paths(project_root)
 
+    # Load data (this might take time due to yfinance)
     try:
         _price_df, _fg_df, merged = data_loader.load_all_data(fg_csv)
     except Exception as e:
@@ -127,18 +122,16 @@ def _get_cached_data(
 
     enriched = indicators.add_moving_averages(
         merged,
-        short_window = params["short_window"],
-        long_window=params["long_window"]
+        short_window=params["short_window"],
+        long_window=params["long_window"],
     )
     enriched = indicators.add_bollinger_bands(enriched)
     enriched = indicators.add_kalman_trend(enriched)
-
     enriched = sentiment.add_sentiment_regime(
         enriched,
-        extreme_fear_threshold = params["extreme_fear_threshold"],
-        extreme_greed_threshold = params["extreme_greed_threshold"]
+        extreme_fear_threshold=params["extreme_fear_threshold"],
+        extreme_greed_threshold=params["extreme_greed_threshold"],
     )
-
     enriched = strategy.generate_positions(enriched)
     enriched = strategy.generate_trade_signals(enriched)
 
@@ -146,20 +139,23 @@ def _get_cached_data(
     enriched["_strategy_equity"] = backtest_df["strategy_equity"]
     enriched["_benchmark_equity"] = backtest_df["benchmark_equity"]
 
+    # Update cache
     _CACHE[key] = (enriched, metrics)
     return enriched, metrics
 
+
 def _run_pipeline_from_request():
     """
-    Helper to extract parameters from the current Flask request and trigger the data pipeline.
+    Run the data and strategy pipeline based on user parameters.
 
-    Returns:
-        Tuple:
-            - enriched: Processed DataFrame ready for serialization.
-            - metrics: Summary dictionary of backtest performance results.
+    Returns
+    -------
+    tuple[pd.DataFrame, dict[str, float]]
+        Enriched data frame and backtest metrics dictionary.
     """
     params = _parse_parameters_from_request()
-    return  _get_cached_data(params)
+    return _get_cached_data(params)
+
 
 if __name__ == "__main__":
     flask_app = create_app()
