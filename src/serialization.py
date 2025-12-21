@@ -45,10 +45,12 @@ def serialize_time_series(data: pd.DataFrame) -> Dict[str, List]:
     }
 
     buy_indices = [
-        i for i, signal in enumerate(payload["trade_signal"]) if signal == "Buy"
+        i for i, signal in enumerate(payload["trade_signal"])
+        if signal == "Buy"
     ]
     sell_indices = [
-        i for i, signal in enumerate(payload["trade_signal"]) if signal == "Sell"
+        i for i, signal in enumerate(payload["trade_signal"])
+        if signal == "Sell"
     ]
 
     payload["buy_indices"] = buy_indices
@@ -75,7 +77,9 @@ def serialize_sentiment(data: pd.DataFrame) -> Dict[str, List]:
     return payload
 
 
-def serialize_performance(data: pd.DataFrame, metrics: Dict[str, float]) -> Dict:
+def serialize_performance(
+    data: pd.DataFrame, metrics: Dict[str, float]
+) -> Dict:
     """
     Serialize performance curves and summary metrics.
     """
@@ -86,8 +90,12 @@ def serialize_performance(data: pd.DataFrame, metrics: Dict[str, float]) -> Dict
 
     payload = {
         "dates": dates,
-        "strategy_equity": _to_list_handle_nan(df["strategy_equity"].round(3)),
-        "benchmark_equity": _to_list_handle_nan(df["benchmark_equity"].round(3)),
+        "strategy_equity": _to_list_handle_nan(
+            df["strategy_equity"].round(3)
+        ),
+        "benchmark_equity": _to_list_handle_nan(
+            df["benchmark_equity"].round(3)
+        ),
         "metrics": metrics,
     }
     return payload
